@@ -50,7 +50,7 @@ async def start(ctx, atime: int = None, *, prize = None):
         await ctx.send('Please enter a valid prize.')
         return
     if atime >= max_time:
-        await ctx.send('Please enter a time lower than 48 hours.')
+        await ctx.send('Sorry, but the max giveaway time is 48 hours.')
         return
     nums1 = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
     nums2 = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
