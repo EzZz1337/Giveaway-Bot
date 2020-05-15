@@ -71,7 +71,7 @@ async def start(ctx, atime: int = None, *, prize = None):
     prize_id_logs = open(f"./Giveaways/{guild.id}-{prize_id}-giveaway.txt", "w")
     prize_id_logs.write(f"{ctx.message.author.id}")
     prize_id_logs.close()
-    await asyncio.sleep(atime * 10)
+    await asyncio.sleep(atime * 3600)
     at = file_len(f"./Giveaways/{guild.id}-{prize_id}-giveaway.txt")
     if at <= 3:
         await ctx.send('Sorry, but there have to be at least 3 attendees to make a giveaway.')
