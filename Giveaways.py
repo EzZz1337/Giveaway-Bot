@@ -13,7 +13,6 @@ from secrets import TOKEN
 # Standart config
 client: Bot = commands.Bot(command_prefix='?')
 client.remove_command('help')
-# Reaction emoji
 
 
 # Standart event(s)
