@@ -13,21 +13,30 @@ from secrets import TOKEN
 # Standart config
 client: Bot = commands.Bot(command_prefix='?')
 client.remove_command('help')
+# Reaction emoji
 
 
 # Standart event(s)
 @client.event
 async def on_ready():
-   await  client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='Giveaways | ?help'))
+   # await  client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='Giveaways | ?help'))
    print(f"Logged in as {client.user} (ID: {client.user.id})")
 
 
 # Standart help command
 @client.command()
 async def help(ctx):
-    embed = discord.Embed(color=0x7289DA, title='Commands', description=f"Prefix: `?` \nTime format: `hours` \nMin. perms to create a giveaway: `ban members` \n \n`?start <time> <prize>` ● Start a Giveaway \n`?enter <giveaway ID>` ● Participate in a giveaway \n`?reroll <giveaway ID>` ● Re-roll a giveaway \n`?help` ● Shows this help message \n \n[Invite the bot!](https://discord.com/api/oauth2/authorize?client_id=710271590411010092&permissions=388160&scope=bot)")
+    embed = discord.Embed(color=0x7289DA, title='Commands', description=f"Prefix: `?` \nTime format: `hours` \nMin. perms to create a giveaway: `ban members` \n \n`?start <time> <prize>` ● Start a Giveaway \n`?end <giveaway ID>` ● End a giveaway \n`?enter <giveaway ID>` ● Participate in a giveaway \n`?reroll <giveaway ID>` ● Re-roll a giveaway \n`?past` ● Shows a list of the past giveaways \n`?help` ● Shows this help message \n \n[Invite the bot!](https://discord.com/api/oauth2/authorize?client_id=710271590411010092&permissions=388160&scope=bot)")
     embed.set_footer(text=f"Invoked by {ctx.message.author}", icon_url=ctx.message.author.avatar_url)
     await ctx.send(embed=embed)
+
+
+
+@client.event
+async def on_guild_join(guild):
+    past_giveaway_list = open(f"./PastGiveaways/{guild.id}-past-giveaways.txt", "w")
+    past_giveaway_list.write(f"`{guild.name}`")
+    past_giveaway_list.close()
 
 
 def file_len(fname):
@@ -64,7 +73,7 @@ async def start(ctx, atime: int = None, *, prize = None):
     prize_id = f"{n1}{n2}{n3}{n4}{n5}"
     hours = atime - 2
     ts = datetime.datetime.now() + datetime.timedelta(hours=hours)
-    e = discord.Embed(color=0x2BFF06, title=f"{prize}", description=f'Type **!enter {prize_id}** to enter this giveaway! \n \nTime: **{atime} hour(s)** \n \nHosted by: {ctx.message.author.mention}', timestamp=ts)
+    e = discord.Embed(color=0x2BFF06, title=f"{prize}", description=f'Type **?enter {prize_id}** to enter this giveaway! \nType **?end {prize_id}** to end this giveaway! \n \nTime: **{atime} hour(s)** \n \nHosted by: {ctx.message.author.mention}', timestamp=ts)
     e.set_footer(text=f"!enter {prize_id} | Ends at")
     msg = await ctx.send(embed=e)
     prize_id_logs = open(f"./Giveaways/{guild.id}-{prize_id}-giveaway.txt", "w")
@@ -89,7 +98,10 @@ async def start(ctx, atime: int = None, *, prize = None):
     await asyncio.sleep(3600)
     open(f"./Giveaways/{guild.id}-{prize_id}-giveaway.txt", 'w').close()
     await asyncio.sleep(1)
-    os.remove(f"./Giveaways/{guild.id}-{prize_id}-giveaway.txt") 
+    os.remove(f"./Giveaways/{guild.id}-{prize_id}-giveaway.txt")
+    past_giveaway_list = open(f"./PastGiveaways/{guild.id}-past-giveaways.txt", "a")
+    past_giveaway_list.write(f"\n \n`{prize}`")
+    past_giveaway_list.close()
 
 
 
@@ -97,7 +109,7 @@ async def start(ctx, atime: int = None, *, prize = None):
 async def enter(ctx, prize_id: int = None):
     guild = ctx.message.guild
     if prize_id == None:
-        await ctx.send('Please enter a valid prize ID.')
+        await ctx.send('Please enter a valid giveaway ID.')
         return
     if not os.path.exists(f"./Giveaways/{guild.id}-{prize_id}-giveaway.txt"):
         await ctx.send('Sorry, but either this giveaway has ended or a giveaway with this ID never existed.')
@@ -112,6 +124,23 @@ async def enter(ctx, prize_id: int = None):
         f.close()
         await ctx.message.author.send('Succesfully entered the giveaway')
 
+
+
+@client.command()
+@commands.has_permissions(ban_members=True)
+async def end(ctx, prize_id: int = None):
+    guild = ctx.message.guild
+    if prize_id == None:
+        await ctx.send('Please enter a valid giveaway ID.')
+        return
+    if not os.path.exists(f"./Giveaways/{guild.id}-{prize_id}-giveaway.txt"):
+        await ctx.send('Sorry, but either this giveaway has ended or a giveaway with this ID never existed.')
+        return
+    if os.path.exists(f"./Giveaways/{guild.id}-{prize_id}-giveaway.txt"):
+        open(f"./Giveaways/{guild.id}-{prize_id}-giveaway.txt", 'w').close()
+        os.remove(f"./Giveaways/{guild.id}-{prize_id}-giveaway.txt")
+        await ctx.send(f'Succesfully ended the giveaway with the ID **{prize_id}**.')
+        return
 
 
 
@@ -130,20 +159,44 @@ async def reroll(ctx, prize_id: int = None):
         winner_id = random.choice(lines)
         winner = await client.fetch_user(winner_id)
         await ctx.send(f'**New Winner(s):** {winner.mention}')
+        open(f"./Giveaways/{guild.id}-{prize_id}-giveaway.txt", 'w').close()
+        os.remove(f"./Giveaways/{guild.id}-{prize_id}-giveaway.txt")
         return
+
+
+
+@client.command()
+@commands.has_permissions(ban_members=True)
+async def past(ctx):
+    guild = ctx.message.guild
+    past_giveaway_list = open(f"./PastGiveaways/{guild.id}-past-giveaways.txt", "r")
+    past_giveaways = past_giveaway_list.read()
+    embed = discord.Embed(color=0x7289DA, description=f"{past_giveaways}")
+    embed.set_author(name='Past Giveaways', icon_url=guild.icon_url)
+    await ctx.send(embed=embed)
+
+
+
+
+
+
+@client.command()
+@commands.is_owner()
+async def oss(ctx):
+    await ctx.send(f"GitHub Repo: https://github.com/EzZz1337/Giveaway-Bot")
     
 
 
 @client.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
-        await ctx.send('Error: command not found...')
+        await ctx.send('Error: command not found.')
         return
     elif isinstance(error, commands.MissingPermissions):
-        await ctx.send(F"Sorry, but you don't have permissions to do this action.")
+        await ctx.send(F"Error: missing user permissions.")
         return
     elif isinstance(error, commands.BotMissingPermissions):
-        await ctx.send(F"Sorry, but I don't have permissions to do this action.")
+        await ctx.send(F"Error: missing bot permissions.")
         return
 
 
