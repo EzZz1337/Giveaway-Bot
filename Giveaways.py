@@ -39,7 +39,7 @@ async def on_guild_join(guild):
     past_giveaway_list.close()
 
 
-def file_len(fname):
+def file_len(fname): # get the lenght of a file
     with open(fname) as f:
         for i, l in enumerate(f):
             pass
