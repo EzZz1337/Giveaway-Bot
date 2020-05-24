@@ -199,10 +199,7 @@ async def on_reaction_add(reaction, user):
 
 @client.event
 async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound):
-        await ctx.send('Error: command not found.')
-        return
-    elif isinstance(error, commands.MissingPermissions):
+    if isinstance(error, commands.MissingPermissions):
         await ctx.send(F"Error: missing user permissions.")
         return
     elif isinstance(error, commands.BotMissingPermissions):
