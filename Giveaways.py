@@ -26,7 +26,7 @@ async def on_ready():
 # Standart help command
 @client.command()
 async def help(ctx):
-    embed = discord.Embed(color=0x7289DA, title='Commands', description=f"Prefix: `?` \nTime format: `hours` \nMin. perms to create a giveaway: `ban members` \n \n`?start <time> <prize>` ● Start a Giveaway \n`?end <giveaway ID>` ● End a giveaway \n`?enter <giveaway ID>` ● Participate in a giveaway \n`?reroll <giveaway ID>` ● Re-roll a giveaway \n`?past` ● Shows a list of the past giveaways \n`?help` ● Shows this help message \n \n[Invite the bot!](https://discord.com/api/oauth2/authorize?client_id=710271590411010092&permissions=388160&scope=bot)")
+    embed = discord.Embed(color=0x7289DA, title='Giveaways Help', description='**Commands** \n?start <duration in hours> <prize> - Starts a giveaway \n?end <giveaway ID> - Ends a giveaway \n?enter <giveaway ID> - Participate in a giveaway \n?reroll <giveaway ID> - Re-rolls a giveaway \n?past - Shows a list of the past giveaways \n \n**Host a giveaway** \nUsers with the  **Ban Members** permission can start giveaways. \n \n `< >` indicates required arguments \n \nClick [here](https://discord.com/api/oauth2/authorize?client_id=710271590411010092&permissions=268823616&scope=bot) to invite the bot to your server.')
     embed.set_footer(text=f"Invoked by {ctx.message.author}", icon_url=ctx.message.author.avatar_url)
     await ctx.send(embed=embed)
 
@@ -39,11 +39,23 @@ async def on_guild_join(guild):
     past_giveaway_list.close()
 
 
-def file_len(fname): # get the lenght of a file
+def file_len(fname): # get lenght of a file 
     with open(fname) as f:
         for i, l in enumerate(f):
             pass
     return i + 1
+
+
+def random_id(): # create a random prize ID
+    nums = ['1', '2', '3', '4', '5', '5', '6', '7', '8', '9', '10']
+    n1 = random.choice(nums)
+    n2 = random.choice(nums)
+    n3 = random.choice(nums)
+    n4 = random.choice(nums)
+    n5 = random.choice(nums)
+    ran_id = n1 + n2 + n3 + n4 + n5
+    return int(ran_id)
+
  
 
 @client.command()
@@ -52,25 +64,15 @@ async def start(ctx, atime: int = None, *, prize = None):
     guild = ctx.message.guild
     max_time = 48
     if atime == None:
-        await ctx.send('Please enter a valid time.')
+        await ctx.send('Error: enter a valid time.')
         return
     if prize == None:
-        await ctx.send('Please enter a valid prize.')
+        await ctx.send('Error: enter a valid prize.')
         return
     if atime >= max_time:
-        await ctx.send('Sorry, but the max giveaway time is 48 hours.')
+        await ctx.send('Error: max time is 48 hours.')
         return
-    nums1 = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
-    nums2 = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
-    nums3 = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
-    nums4 = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
-    nums5 = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
-    n1 = random.choice(nums1)
-    n2 = random.choice(nums2)
-    n3 = random.choice(nums3)
-    n4 = random.choice(nums4)
-    n5 = random.choice(nums5)
-    prize_id = f"{n1}{n2}{n3}{n4}{n5}"
+    prize_id = random_id()
     hours = atime - 2
     ts = datetime.datetime.now() + datetime.timedelta(hours=hours)
     e = discord.Embed(color=0x2BFF06, title=f"{prize}", description=f'Type **?enter {prize_id}** to enter this giveaway! \nType **?end {prize_id}** to end this giveaway! \n \nTime: **{atime} hour(s)** \n \nHosted by: {ctx.message.author.mention}', timestamp=ts)
@@ -82,7 +84,7 @@ async def start(ctx, atime: int = None, *, prize = None):
     await asyncio.sleep(atime * 3600)
     at = file_len(f"./Giveaways/{guild.id}-{prize_id}-giveaway.txt")
     if at <= 3:
-        await ctx.send('Sorry, but there have to be at least 3 attendees to make a giveaway.')
+        await ctx.send(f'Sorry, but there have to be at least 3 attendees to make a giveaway. Only **{at}** user(s) entered this giveaway.')
         open(f"./Giveaways/{guild.id}-{prize_id}-giveaway.txt", 'w').close()
         await asyncio.sleep(1)
         os.remove(f"./Giveaways/{guild.id}-{prize_id}-giveaway.txt") 
@@ -92,8 +94,10 @@ async def start(ctx, atime: int = None, *, prize = None):
     winner = await client.fetch_user(winner_id)
     e1 = discord.Embed(color=0xF30700, title=f"{prize}", description=f"Giveaway has ended! \n \n**Winner:** {winner.mention}", timestamp=ts)
     e1.set_footer(text=f"Prize ID {prize_id} | Ended at")
-    await asyncio.sleep(atime * 10)
+    await asyncio.sleep(int(atime) * 10)
     await msg.edit(embed=e1)
+    await ctx.send(f"🎉 Congratulations {winner.mention} you won **{prize}**")
+    await asyncio.sleep(1)
     await ctx.send('If you want to reroll this giveaway, you have 1 hour to do so.')
     await asyncio.sleep(3600)
     open(f"./Giveaways/{guild.id}-{prize_id}-giveaway.txt", 'w').close()
@@ -122,7 +126,7 @@ async def enter(ctx, prize_id: int = None):
         f = open(f"./Giveaways/{guild.id}-{prize_id}-giveaway.txt", "a")
         f.write(f"\n{ctx.message.author.id}")
         f.close()
-        await ctx.message.author.send('Succesfully entered the giveaway')
+        await ctx.message.author.send(f'Succesfully entered the giveaway with the ID **{prize_id}**!')
 
 
 
@@ -180,10 +184,18 @@ async def past(ctx):
 
 
 
+
 @client.command()
 @commands.is_owner()
 async def oss(ctx):
     await ctx.send(f"GitHub Repo: https://github.com/EzZz1337/Giveaway-Bot")
+
+
+
+@client.command()
+@commands.is_owner()
+async def guilds(ctx):
+    await ctx.send(f"Guilds: **{len(client.guilds)}** \nUsers: **{len(set(client.get_all_members()))}**")
     
 
 
