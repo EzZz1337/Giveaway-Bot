@@ -1,1 +1,1 @@
-TOKEN = ''
+TOKEN = '' # empty
