@@ -28,7 +28,7 @@ async def on_ready():
 async def help(ctx):
     msg = ctx.message.channel.last_message
     await msg.add_reaction('<:Party:714144280142151692>')
-    await ctx.message.author.send(f"<:Party:714144280142151692> **__Giveaways commands:__** \n \n**?invite** - get an invite link for the bot \n**?ping** - shows the bot's latency \n**?help** - shows this help message \n \n<:Party:714144280142151692> **__Host a Giveaway__:** \n \n**?start <duration in hours> <prize>** - starts a giveaway in the current channel \n**?end <message ID>** - ends the specified giveaway \n**?reroll <message ID>** - re-rolls the specified giveaway \n**?past** - shows a list of the past giveaways \n \n`< >` indicates required arguments.")
+    await ctx.message.author.send(f"<:Party:714144280142151692> **__Giveaways commands:__** \n \n**?invite** - get an invite link for the bot \n**?ping** - shows the bot's latency \n**?help** - shows this help message \n \n<:Party:714144280142151692> **__Host a Giveaway__:** \n \n**?start <duration in hours> <prize>** - starts a giveaway in the current channel \n**?end <message ID>** - ends the specified giveaway \n**?reroll <message ID>** - re-rolls the specified giveaway \n**?past** - shows a list of the past giveaways \n \n`< >` indicates required arguments. \nWebsite: https://giveaways--ezzz1337.repl.co")
 
 
 
@@ -84,10 +84,12 @@ async def start(ctx, atime: int = None, *, prize = None):
         await msg.edit(f"This giveaway has been canceled! \n{jump}")
         return
     if os.path.exists(f"./Giveaways/{msg.id}-test.txt"):
-        if at <= 1:
+        if at >= 1:
             await ctx.send(f'Sorry, but there have to be at least 3 attendees to make a giveaway. Only **{at}** user(s) entered this giveaway. \n{jump}')
             open(f"./Giveaways/{msg.id}-test.txt", 'w').close()
             await asyncio.sleep(1)
+            e = discord.Embed(color=0xF30700, title=f"{prize}", description=f"Giveaway has been canceled! \nNot enogh attendees (**{at}**)")
+            await msg.edit(embed=e)
             os.remove(f"./Giveaways/{msg.id}-test.txt") 
             return
         lines = open(f"./Giveaways/{msg.id}-test.txt").read().splitlines()
@@ -137,6 +139,12 @@ async def reroll(ctx, msg_id: int = None):
         await ctx.send('Sorry, but a giveaway with that ID does not exist.')
         return
     if os.path.exists(f"./Giveaways/{msg_id}-test.txt"):
+        at = file_len(f"./Giveaways/{msg_id}-test.txt")
+        if at >= 3:
+            await ctx.send('Error: Not enough attendees.')
+            open(f"./Giveaways/{msg_id}-test.txt", 'w').close()
+            os.remove(f"./Giveaways/{msg_id}-test.txt")
+            return
         lines = open(f"./Giveaways/{msg_id}-test.txt").read().splitlines()
         winner_id = random.choice(lines)
         winner = await client.fetch_user(winner_id)
@@ -205,7 +213,6 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.BotMissingPermissions):
         await ctx.send(F"Error: missing bot permissions.")
         return
-
 
 
 client.run(TOKEN)
