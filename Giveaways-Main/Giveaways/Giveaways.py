@@ -19,7 +19,7 @@ client.remove_command('help')
 # Standart event(s)
 @client.event
 async def on_ready():
-   # await  client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='Giveaways | ?help'))
+   await  client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='Giveaways | ?help'))
    print(f"Logged in as {client.user} (ID: {client.user.id})")
 
 
@@ -28,7 +28,7 @@ async def on_ready():
 async def help(ctx):
     msg = ctx.message.channel.last_message
     await msg.add_reaction('<:Party:714144280142151692>')
-    await ctx.message.author.send(f"<:Party:714144280142151692> **__Giveaways commands:__** \n \n**?invite** - get an invite link for the bot \n**?ping** - shows the bot's latency \n**?help** - shows this help message \n \n<:Party:714144280142151692> **__Host a Giveaway__:** \n \n**?start <duration in hours> <prize>** - starts a giveaway in the current channel \n**?end <message ID>** - ends the specified giveaway \n**?reroll <message ID>** - re-rolls the specified giveaway \n**?past** - shows a list of the past giveaways \n \n`< >` indicates required arguments. \nWebsite: https://giveaways--ezzz1337.repl.co")
+    await ctx.message.author.send(f"<:Party:714144280142151692> **__Giveaways commands:__** \n \n**?invite** - get an invite link for the bot \n**?ping** - shows the bot's latency \n**?info** - shows some info about the bot \n**?help** - shows this help message \n \n<:Party:714144280142151692> **__Host a Giveaway__:** \n \n**?start <duration in hours> <prize>** - starts a giveaway in the current channel \n**?end <message ID>** - ends the specified giveaway \n**?reroll <message ID>** - re-rolls the specified giveaway \n**?past** - shows a list of the past giveaways \n \n`< >` indicates required arguments. \nWebsite: https://giveaways--ezzz1337.repl.co")
 
 
 
@@ -47,6 +47,19 @@ def file_len(fname): # get lenght of a file
 
 
 
+def get_giveaway_amount(Directory): # get giveaway amount
+    amount = [name for name in os.listdir(Directory) if os.path.isfile(os.path.join(Directory, name))]
+    return len(amount)
+
+
+@client.command()
+async def info(ctx):
+    giveaway_amount = get_giveaway_amount('./Giveaways')
+    await ctx.send(f"<:Party:714144280142151692> **__Info about Giveaways#3716__** \n \nName: **{client.user}** \nID: **{client.user.id}** \nMention: {client.user.mention} \nCreator: **EzZz#0001** \nWebsite: **https://giveaways--ezzz1337.repl.co** \n \n<:Party:714144280142151692> **__Stats__** \n \nGuilds: **{len(client.guilds)}** \nUsers: **{len(set(client.get_all_members()))}** \nGiveaways: **{giveaway_amount} right now**")
+
+
+
+
 @client.command()
 async def ping(ctx):
     msg = await ctx.send('<a:Loading:714147946932732025> Loading...')
@@ -58,6 +71,7 @@ async def ping(ctx):
 @client.command()
 @commands.has_permissions(ban_members=True)
 async def start(ctx, atime: int = None, *, prize = None):
+    guild = ctx.message.guild
     max_time = 48
     if atime == None:
         await ctx.send('Error: enter a valid time.')
@@ -70,61 +84,69 @@ async def start(ctx, atime: int = None, *, prize = None):
         return
     hours = atime - 2
     ts = datetime.datetime.now() + datetime.timedelta(hours=hours)
-    e = discord.Embed(color=0x2BFF06, title=f"{prize}", description=f'React with 🎉 to enter this giveaway! \nTime: **{atime}** hour(s) \nHosted by: {ctx.message.author.mention}', timestamp=ts)
+    e = discord.Embed(color=0x2BFF06, title=f"{prize}", description=f'React with 🎉 to enter this giveaway! \nTime left: **{atime}** hour(s) \nHosted by: {ctx.message.author.mention}', timestamp=ts)
     e.set_footer(text="Ends at")
     msg = await ctx.send(embed=e)
     await msg.add_reaction('🎉')
     jump = msg.jump_url
-    f = open(f"./Giveaways/{msg.id}-test.txt", "w")
+    f = open(f"./Giveaways/{guild.id}-{msg.id}-test.txt", "w")
     f.write(f"{ctx.message.author.id}")
     f.close()
-    await asyncio.sleep(atime * 3600)
-    at = file_len(f"./Giveaways/{msg.id}-test.txt")
-    if not os.path.exists(f"./Giveaways/{msg.id}-test.txt"):
-        await msg.edit(f"This giveaway has been canceled! \n{jump}")
-        return
-    if os.path.exists(f"./Giveaways/{msg.id}-test.txt"):
-        if at >= 1:
-            await ctx.send(f'Sorry, but there have to be at least 3 attendees to make a giveaway. Only **{at}** user(s) entered this giveaway. \n{jump}')
-            open(f"./Giveaways/{msg.id}-test.txt", 'w').close()
-            await asyncio.sleep(1)
-            e = discord.Embed(color=0xF30700, title=f"{prize}", description=f"Giveaway has been canceled! \nNot enogh attendees (**{at}**)")
-            await msg.edit(embed=e)
-            os.remove(f"./Giveaways/{msg.id}-test.txt") 
-            return
-        lines = open(f"./Giveaways/{msg.id}-test.txt").read().splitlines()
-        winner_id = random.choice(lines)
-        winner = await client.fetch_user(winner_id)
-        e1 = discord.Embed(color=0xF30700, title=f"{prize}", description=f"Giveaway has ended! \n \n**Winner:** {winner.mention}", timestamp=ts)
-        e1.set_footer(text="Ended at")
-        await asyncio.sleep(int(atime) * 10)
-        await msg.edit(embed=e1)
-        await ctx.send(f"🎉 Congratulations {winner.mention} you won **{prize}**")
-        await asyncio.sleep(1)
-        await ctx.message.author.send(f"Giveaway **{prize}** has ended. If you want to reroll this giveaway, you have 1 hour to do so. \n{jump}")
+    dur = atime
+    while dur > 0:
+        dur -= 1
         await asyncio.sleep(3600)
-        open(f"./Giveaways/{msg.id}-test.txt", 'w').close()
+        e2 = discord.Embed(color=0x2BFF06, title=f"{prize}", description=f'React with :tada: to enter this giveaway! \nTime left: **{dur}** hour(s) \nHosted by: {ctx.message.author.mention}', timestamp=ts)
+        e2.set_footer(text="Ends at")
+        await msg.edit(embed=e2)
+        if dur == 0:
+            break
+    at = file_len(f"./Giveaways/{guild.id}-{msg.id}-test.txt")
+    if at < 3:
+        await ctx.send(f'Sorry, but there have to be at least 3 attendees to make a giveaway. Only **{at}** user(s) entered this giveaway. \n{jump}')
+        open(f"./Giveaways/{guild.id}-{msg.id}-test.txt", 'w').close()
         await asyncio.sleep(1)
-        os.remove(f"./Giveaways/{msg.id}-test.txt")
-        past_giveaway_list = open(f"./PastGiveaways/{guild.id}-past-giveaways.txt", "a")
-        past_giveaway_list.write(f"\n \n`{prize}`")
-        past_giveaway_list.close()
+        e = discord.Embed(color=0xF30700, title=f"{prize}", description=f"Giveaway has been canceled! \nNot enogh attendees (**{at}**)")
+        await msg.edit(embed=e)
+        os.remove(f"./Giveaways/{guild.id}-{msg.id}-test.txt") 
+        return
+    lines = open(f"./Giveaways/{guild.id}-{msg.id}-test.txt").read().splitlines()
+    winner_id = random.choice(lines)
+    winner = await client.fetch_user(winner_id)
+    e1 = discord.Embed(color=0xF30700, title=f"{prize}", description=f"Giveaway has ended! \n \n**Winner:** {winner.mention}", timestamp=ts)
+    e1.set_footer(text="Ended at")
+    await msg.edit(embed=e1)
+    await ctx.send(f"🎉 Congratulations {winner.mention} you won **{prize}**")
+    await asyncio.sleep(1)
+    await ctx.message.author.send(f"Giveaway **{prize}** has ended. If you want to reroll this giveaway, you have 1 hour to do so. \n{jump}")
+    await asyncio.sleep(3600)
+    open(f"./Giveaways/{guild.id}-{msg.id}-test.txt", 'w').close()
+    await asyncio.sleep(1)
+    os.remove(f"./Giveaways/{guild.id}-{msg.id}-test.txt")
+    past_giveaway_list = open(f"./PastGiveaways/{guild.id}-past-giveaways.txt", "a")
+    past_giveaway_list.write(f"\n \n`{prize}`")
+    past_giveaway_list.close()
+    return
 
 
 
 @client.command()
 @commands.has_permissions(ban_members=True)
 async def end(ctx, msg_id: int = None):
+    guild = ctx.message.guild
     if msg_id == None:
-        await ctx.send('Please enter a valid giveaway ID.')
+        await ctx.send('Please enter a valid message ID.')
         return
-    if not os.path.exists(f"./Giveaways/{msg_id}-test.txt"):
+    if not os.path.exists(f"./Giveaways/{guild.id}-{msg_id}-test.txt"):
         await ctx.send('Sorry, but either this giveaway has ended or a giveaway with this ID never existed.')
         return
-    if os.path.exists(f"./Giveaways/{msg_id}-test.txt"):
-        open(f"./Giveaways/{msg_id}-test.txt", 'w').close()
-        os.remove(f"./Giveaways/{msg_id}-test.txt")
+    if os.path.exists(f"./Giveaways/{guild.id}-{msg_id}-test.txt"):
+        open(f"./Giveaways/{guild.id}-{msg_id}-test.txt", 'w').close()
+        os.remove(f"./Giveaways/{guild.id}-{msg_id}-test.txt")
         await ctx.send(f'Succesfully ended the giveaway! (**{msg_id}**)')
+        msg = await ctx.message.channel.fetch_message(msg_id)
+        e = discord.Embed(color=0xF30700, description=f"Giveaway has been canceled!")
+        await msg.edit(embed=e)
         return
 
 
@@ -132,25 +154,29 @@ async def end(ctx, msg_id: int = None):
 @client.command()
 @commands.has_permissions(ban_members=True)
 async def reroll(ctx, msg_id: int = None):
+    guild = ctx.message.guild
     if msg_id == None:
-        await ctx.send('Please enter a valid prize ID.')
+        await ctx.send('Please enter a valid message ID.')
         return
-    if not os.path.exists(f"./Giveaways/{msg_id}-test.txt"):
+    if not os.path.exists(f"./Giveaways/{guild.id}-{msg_id}-test.txt"):
         await ctx.send('Sorry, but a giveaway with that ID does not exist.')
         return
-    if os.path.exists(f"./Giveaways/{msg_id}-test.txt"):
-        at = file_len(f"./Giveaways/{msg_id}-test.txt")
-        if at >= 3:
+    if os.path.exists(f"./Giveaways/{guild.id}-{msg_id}-test.txt"):
+        at = file_len(f"./Giveaways/{guild.id}-{msg_id}-test.txt")
+        if at < 3:
             await ctx.send('Error: Not enough attendees.')
-            open(f"./Giveaways/{msg_id}-test.txt", 'w').close()
-            os.remove(f"./Giveaways/{msg_id}-test.txt")
+            open(f"./Giveaways/{guild.id}-{msg_id}-test.txt", 'w').close()
+            os.remove(f"./Giveaways/{guild.id}-{msg_id}-test.txt")
+            msg = await ctx.message.channel.fetch_message(msg_id)
+            e = discord.Embed(color=0xF30700, description=f"Giveaway has been canceled! \n \nNot enough attendees (**{at}**).")
+            await msg.edit(embed=e)
             return
-        lines = open(f"./Giveaways/{msg_id}-test.txt").read().splitlines()
+        lines = open(f"./Giveaways/{guild.id}-{msg_id}-test.txt").read().splitlines()
         winner_id = random.choice(lines)
         winner = await client.fetch_user(winner_id)
         await ctx.send(f'**New Winner(s):** {winner.mention}')
-        open(f"./Giveaways/{msg_id}-test.txt", 'w').close()
-        os.remove(f"./Giveaways/{msg_id}-test.txt")
+        open(f"./Giveaways/{guild.id}-{msg_id}-test.txt", 'w').close()
+        os.remove(f"./Giveaways/{guild.id}-{msg_id}-test.txt")
         return
 
 
@@ -193,13 +219,17 @@ async def guilds(ctx):
 @client.event
 async def on_reaction_add(reaction, user):
     msg = reaction.message
-    if not os.path.exists(f"./Giveaways/{msg.id}-test.txt"):
+    guild = msg.guild
+    bot = client.get_user(710271590411010092)
+    if not os.path.exists(f"./Giveaways/{guild.id}-{msg.id}-test.txt"):
         return
-    if os.path.exists(f"./Giveaways/{msg.id}-test.txt"):
-        with open(f"./Giveaways/{msg.id}-test.txt") as f2:
+    if os.path.exists(f"./Giveaways/{guild.id}-{msg.id}-test.txt"):
+        with open(f"./Giveaways/{guild.id}-{msg.id}-test.txt") as f2:
             if str(user.id) in f2.read():
                 return
-        f = open(f"./Giveaways/{msg.id}-test.txt", "a")
+        if user == bot:
+            return
+        f = open(f"./Giveaways/{guild.id}-{msg.id}-test.txt", "a")
         f.write(f"\n{user.id}")
         return
     
